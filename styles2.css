@@ -1,0 +1,43 @@
+td{
+    width: 1000px;
+}
+video{
+    width: 500px;
+    height: 500px;
+        border: none;
+    box-shadow: none; 
+
+}
+h1{
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 50px;
+    color:black;
+    font-weight: bold;
+    margin:0px 120px;
+    padding: 10px 20px;
+    background: beige;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+
+}
+body{
+    background-image: url("logoo.jpeg");
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+h2{
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 35px;
+    color: black;
+    font-weight: bold;
+    margin: 120px;
+    padding: 10px 20px;
+    background:beige;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+
+
+}
+header{
+    margin-bottom: 40px;
+}

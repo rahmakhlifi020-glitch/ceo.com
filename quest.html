@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionnaire</title>
+    <link rel="stylesheet" href="messtyles.css">
+</head>
+<body id="bd2">
+  <main class="container" id="m1" role="main">
+
+    <h1 id="a1">Profil sportif — QCM</h1>
+    <p class="lead">Réponds au questionnaire pour établir ton profil sportif. Ce profil est stocké localement (pas de partage aux Big Tech).</p>
+
+    <form id="qcmForm" aria-describedby="instructions">
+      <div id="instructions" class="muted">Remplis les champs puis clique sur <strong>Générer mon profil</strong>.</div>
+
+      <fieldset>
+        <legend>Niveau général</legend>
+        <div class="row" role="radiogroup" aria-label="Niveau sportif">
+          <label class="option"><input type="radio" name="niveau" value="Débutant" required> Débutant</label>
+          <label class="option"><input type="radio" name="niveau" value="Intermédiaire"> Intermédiaire</label>
+          <label class="option"><input type="radio" name="niveau" value="Avancé"> Avancé</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Sports pratiqués (choix multiple)</legend>
+        <div class="row" role="group" aria-label="Sports pratiqués">
+          <label class="option"><input type="checkbox" name="sports" value="Course"> Course</label>
+          <label class="option"><input type="checkbox" name="sports" value="Football"> Football</label>
+          <label class="option"><input type="checkbox" name="sports" value="Basket"> Basket</label>
+          <label class="option"><input type="checkbox" name="sports" value="Fitness / Musculation"> Fitness / Musculation</label>
+          <label class="option"><input type="checkbox" name="sports" value="Yoga"> Yoga</label>
+          <label class="option"><input type="checkbox" name="sports" value="Natation"> Natation</label>
+          <label class="option"><input type="checkbox" name="sports" value="Autre"> Autre</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Objectifs (choix multiple)</legend>
+        <div class="row" role="group" aria-label="Objectifs">
+          <label class="option"><input type="checkbox" name="objectifs" value="Perdre du poids"> Perdre du poids</label>
+          <label class="option"><input type="checkbox" name="objectifs" value="Prendre de la masse"> Prendre de la masse</label>
+          <label class="option"><input type="checkbox" name="objectifs" value="Améliorer la souplesse"> Améliorer la souplesse</label>
+          <label class="option"><input type="checkbox" name="objectifs" value="Améliorer l'endurance"> Améliorer l'endurance</label>
+          <label class="option"><input type="checkbox" name="objectifs" value="Prévention des blessures"> Prévention des blessures</label>
+          <label class="option"><input type="checkbox" name="objectifs" value="Compétition"> Compétition</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Fréquence hebdomadaire</legend>
+        <select id="sel" name="frequence" required aria-label="Fréquence hebdomadaire">
+          <option value="">-- Choisis la fréquence --</option>
+          <option value="0-1">0-1 fois / semaine</option>
+          <option value="2-3">2-3 fois / semaine</option>
+          <option value="4-5">4-5 fois / semaine</option>
+          <option value="6+">6 fois ou plus / semaine</option>
+        </select>
+      </fieldset>
+
+      <fieldset>
+        <legend>Antécédents de blessures ou douleurs</legend>
+        <div class="row" role="radiogroup" aria-label="Antécédents blessures">
+          <label class="option"><input type="radio" name="blessure" value="Non" checked> Non</label>
+          <label class="option"><input type="radio" name="blessure" value="Oui"> Oui (décrire)</label>
+        </div>
+        <div style="margin-top:8px">
+          <label for="blessureDetails" class="muted">Si oui, indique la zone / détails :</label>
+          <textarea id="blessureDetails" name="blessureDetails" placeholder="Ex : douleurs genoux lors de la course..."></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Équipement / préférence</legend>
+        <div class="row">
+          <label class="option"><input type="checkbox" name="equip" value="Tapis"> Tapis</label>
+          <label class="option"><input type="checkbox" name="equip" value="Bandes de résistance"> Bandes de résistance</label>
+          <label class="option"><input type="checkbox" name="equip" value="Haltères"> Haltères</label>
+          <label class="option"><input type="checkbox" name="equip" value="Aucun"> Aucun</label>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" id="submitBtn">Générer mon profil</button>
+        <button type="button" class="secondary" id="resetBtn">Réinitialiser</button>
+        <button type="button" class="secondary" id="downloadBtn" title="Télécharger le profil au format JSON">Télécharger JSON</button>
+      </div>
+    </form>
+
+    <section id="result" class="result" aria-live="polite" hidden>
+      <h2>Résumé de ton profil <span class="badge" id="badgeNiv"></span></h2>
+      <p id="summaryText" class="muted"></p>
+      <div id="recommendations" style="margin-top:10px"></div>
+      <div id="exerciseInstructions" style="margin-top:12px"></div>
+    </section>
+  </main> 
+  <script>
+    const form = document.getElementById('qcmForm');
+    const result = document.getElementById('result');
+    const badgeNiv = document.getElementById('badgeNiv');
+    const summaryText = document.getElementById('summaryText');
+    const recommendations = document.getElementById('recommendations');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let lastProfile = null;
+
+    function getCheckedValues(name){
+      return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(i => i.value);
+    }
+
+    function getValue(name){
+      const el = form.elements[name];
+      if(!el) return '';
+      if(el.length === undefined) return el.value;
+      return el.value;
+    }
+
+    function generateRecommendations(profile){
+      const rec = [];
+      if(profile.objectifs.includes('Prévention des blessures') || profile.blessure === 'Oui'){
+        rec.push(`<strong>Conseils prévention :</strong> toujours échauffer 5-10 minutes avant, privilégier exercices de mobilité et renforcement musculaire (ex : renforcement du tronc / "core").`);
+      }
+      if(profile.niveau === 'Débutant'){
+        rec.push(`<strong>Plan débutant :</strong> 2-3 séances courtes (20-40 min) par semaine: 1 séance mobilité + renfo léger, 1 séance cardio léger.`);
+      } else if(profile.niveau === 'Intermédiaire'){
+        rec.push(`<strong>Plan intermédiaire :</strong> 3-4 séances / semaine, mélange renfo, cardio et mobilité. Augmente progressivement charge et volume.`);
+      } else if(profile.niveau === 'Avancé'){
+        rec.push(`<strong>Plan avancé :</strong> programme structuré, attention à la récupération (sommeil, nutrition). Suivre charges et périodisation.`);
+      }
+
+      if(profile.sports.includes('Yoga') || profile.objectifs.includes('Améliorer la souplesse')){
+        rec.push(`<strong>Souplesse :</strong> intégrer 10-15 min d'étirements dynamiques et 10 min de relaxation / étirements statiques après séance.`);
+      }
+
+      if(profile.equip.includes('Aucun')){
+        rec.push(`<strong>Sans matériel :</strong> nombreux exercices au poids du corps pour renforcement et prévention (squats, fentes, gainage, pompes modifiées).`);
+      } else {
+        rec.push(`<strong>Matériel utile :</strong> Tapis pour confort; bandes de résistance pour travail proprioceptif et renforcement léger.`);
+      }
+
+      rec.push(`<strong>Respect de la vie privée :</strong> ton profil est stocké <em>localement</em> dans ton navigateur (localStorage/JSON) — aucune donnée envoyée à des services externes.`);
+
+      return rec;
+    }
+
+    function showProfile(profile){
+      badgeNiv.textContent = profile.niveau;
+      const sports = profile.sports.length ? profile.sports.join(', ') : 'Aucun';
+      const objectifs = profile.objectifs.length ? profile.objectifs.join(', ') : 'Aucun';
+      const freq = profile.frequence || 'Non indiqué';
+      const bless = profile.blessure === 'Oui' ? `Oui — ${profile.blessureDetails || 'pas de détails'}` : 'Non';
+
+      summaryText.innerHTML = `
+        <strong>Sports pratiqués :</strong> ${sports}<br>
+        <strong>Objectifs :</strong> ${objectifs}<br>
+        <strong>Fréquence :</strong> ${freq}<br>
+        <strong>Antécédents blessures :</strong> ${bless}<br>
+        <strong>Équipement :</strong> ${profile.equip.length ? profile.equip.join(', ') : 'Aucun'}
+      `;
+
+      const recs = generateRecommendations(profile);
+      recommendations.innerHTML = '<h3 style="margin:6px 0">Recommandations</h3><ul>' + recs.map(r => `<li style="margin:6px 0">${r}</li>`).join('') + '</ul>';
+
+      result.hidden = false;
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const profile = {
+        niveau: getValue('niveau') || '',
+        sports: getCheckedValues('sports'),
+        objectifs: getCheckedValues('objectifs'),
+        frequence: getValue('frequence') || '',
+        blessure: getValue('blessure') || 'Non',
+        blessureDetails: document.getElementById('blessureDetails').value.trim(),
+        equip: getCheckedValues('equip'),
+        createdAt: new Date().toISOString()
+      };
+
+      if(!profile.niveau){
+        alert('Veuillez choisir votre niveau.');
+        return;
+      }
+      if(!profile.frequence){
+        alert('Veuillez choisir votre fréquence hebdomadaire.');
+        return;
+      }
+
+      try {
+        localStorage.setItem('profilSportif', JSON.stringify(profile));
+      } catch(err){
+        console.warn('localStorage indisponible', err);
+      }
+
+      lastProfile = profile;
+      showProfile(profile);
+      result.scrollIntoView({behavior:'smooth', block:'center'});
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if(confirm('Réinitialiser le formulaire ?')) {
+        form.reset();
+        document.getElementById('blessureDetails').value = '';
+        result.hidden = true;
+        lastProfile = null;
+        try { localStorage.removeItem('profilSportif'); } catch(e){}
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      let profile = lastProfile;
+      if(!profile){
+        try {
+          const raw = localStorage.getItem('profilSportif');
+          if(raw) profile = JSON.parse(raw);
+        } catch(e){}
+      }
+      if(!profile){
+        alert('Aucun profil à télécharger. Merci de compléter le questionnaire puis cliquez sur "Générer mon profil".');
+        return;
+      }
+      const blob = new Blob([JSON.stringify(profile, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `profil_sportif_${(new Date()).toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const raw = localStorage.getItem('profilSportif');
+        if(raw){
+          const p = JSON.parse(raw);
+          if(p.niveau){
+            const r = document.querySelector(`input[name="niveau"][value="${p.niveau}"]`);
+            if(r) r.checked = true;
+          }
+          if(Array.isArray(p.sports)){
+            p.sports.forEach(s => {
+              const el = document.querySelector(`input[name="sports"][value="${s}"]`);
+              if(el) el.checked = true;
+            });
+          }
+          if(Array.isArray(p.objectifs)){
+            p.objectifs.forEach(s => {
+              const el = document.querySelector(`input[name="objectifs"][value="${s}"]`);
+              if(el) el.checked = true;
+            });
+          }
+          if(p.frequence){
+            const sel = form.elements['frequence'];
+            if(sel) sel.value = p.frequence;
+          }
+          if(p.blessure){
+            const b = document.querySelector(`input[name="blessure"][value="${p.blessure}"]`);
+            if(b) b.checked = true;
+            if(p.blessureDetails) document.getElementById('blessureDetails').value = p.blessureDetails;
+          }
+          if(Array.isArray(p.equip)){
+            p.equip.forEach(s => {
+              const el = document.querySelector(`input[name="equip"][value="${s}"]`);
+              if(el) el.checked = true;
+            });
+          }
+          lastProfile = p;
+          showProfile(p);
+        }
+      } catch(e){
+        console.warn('Impossible de précharger le profil', e);
+      }
+    });
+    // --- 1) Base d'instructions pour mouvements courants (français) ---
+const EXERCISE_INSTRUCTIONS = {
+  "Squat": {
+    description: "Le squat renforce cuisses, fessiers et gainage.",
+    steps: [
+      "Position de départ : pieds écartés à la largeur des épaules, orteils légèrement tournés vers l'extérieur.",
+      "Garde le dos droit, poitrine ouverte, regard vers l'avant.",
+      "Inspire et plie les genoux en poussant les hanches vers l'arrière comme si tu t'assieds sur une chaise.",
+      "Descends jusqu'à ce que les cuisses soient parallèles au sol (ou moins selon mobilité).",
+      "Pousse sur les talons pour remonter en expirant, en contractant les fessiers."
+    ],
+    cues: [
+      "Ne laisse pas les genoux partir trop en avant.",
+      "Contrôle la descente (ne pas tomber).",
+      "Garde le poids sur les talons."
+    ]
+  },
+  "Pompes": {
+    description: "Les pompes renforcent la poitrine, les épaules et le tronc.",
+    steps: [
+      "Position de planche haute, mains sous les épaules, corps aligné (tête-hanches-talons).",
+      "Contracte le ventre pour stabiliser le tronc.",
+      "Inspire en descendant, coudes à ~45° du corps.",
+      "Descends jusqu'à ce que la poitrine frôle le sol (ou moins selon niveau).",
+      "Pousse sur les mains pour remonter en expirant."
+    ],
+    cues: [
+      "Ne creuse pas le bas du dos.",
+      "Si c'est trop dur, débuter par des pompes sur les genoux ou contre un mur."
+    ]
+  },
+  "Planche": {
+    description: "Renforce le gainage et la stabilité du tronc.",
+    steps: [
+      "Position avant-bras au sol, coudes sous les épaules, corps aligné.",
+      "Contracte le ventre et les fessiers, maintiens la position.",
+      "Respire calmement et tiens 20-60 secondes selon niveau."
+    ],
+    cues: ["Ne laisse pas les hanches s'affaisser.", "Regarde vers le sol pour garder la nuque neutre."]
+  },
+  "Fente": {
+    description: "Travail unilatéral pour cuisses et équilibre.",
+    steps: [
+      "Position debout, fais un grand pas en avant.",
+      "Fléchis les deux genoux jusqu'à ~90°, genou avant au-dessus de la cheville.",
+      "Pousse sur le talon avant pour revenir."
+    ],
+    cues: ["Garde le buste droit.", "Évite que le genou avant dépasse trop l'orteil."]
+  },
+  "Downward Dog": {
+    description: "Posture de yoga pour étirer ischios, dos, épaules.",
+    steps: [
+      "À quatre pattes, pousse les hanches vers le haut et l'arrière pour former un V inversé.",
+      "Allonge la colonne, pousse les mains au sol et essaie d'amener les talons vers le sol.",
+      "Respire profondément et garde la posture 30-60 secondes."
+    ],
+    cues: ["Fléchis légèrement les genoux si les ischios sont tendus.", "Ne bloque pas la respiration."]
+  }
+};
+function adaptStepsForLevel(steps, niveau) {
+  const adapted = [...steps];
+  if (niveau === 'Débutant') {
+    adapted.unshift("Commence lentement, exécute chaque mouvement lentement et contrôlé.");
+    adapted.push("Fais 1 à 2 séries de 8-12 répétitions pour débuter.");
+  } else if (niveau === 'Intermédiaire') {
+    adapted.unshift("Augmente progressivement la charge et la cadence.");
+    adapted.push("Fais 2 à 3 séries de 8-15 répétitions selon l'exercice.");
+  } else if (niveau === 'Avancé') {
+    adapted.unshift("Travaille la technique à charge plus élevée et varie l'intensité.");
+    adapted.push("Pense à la périodisation et à la récupération (2-4 séries lourdes ou 3-6 séries selon objectif).");
+  }
+  return adapted;
+}
+
+function adjustForInjury(cues, blessureDetails) {
+  const adjusted = [...cues];
+  if (!blessureDetails) return adjusted;
+  const s = blessureDetails.toLowerCase();
+  if (s.includes('genou')) {
+    adjusted.push("Avec antécédent de genou : évite profondeur excessive, privilégie amplitude confortable et renforcement quad/ischios progressif.");
+  }
+  if (s.includes('dos') || s.includes('lomb')) {
+    adjusted.push("Avec antécédent de dos : évite flexion/rotation brusque, priorise gainage et mobilité lombaire, consulte si douleur aiguë.");
+  }
+  if (s.includes('epaule') || s.includes('épaule')) {
+    adjusted.push("Avec antécédent d'épaule : évite amplitude douloureuse, réduis charge, privilégie qualité de mouvement.");
+  }
+  return adjusted;
+}
+
+function generateExerciseInstructions(profile) {
+  const candidates = new Set();
+
+  if (profile.sports.includes('Fitness / Musculation') || profile.objectifs.includes('Prendre de la masse') || profile.objectifs.includes('Prévention des blessures')) {
+    candidates.add('Squat'); candidates.add('Pompes'); candidates.add('Planche');
+  }
+  if (profile.sports.includes('Yoga') || profile.objectifs.includes('Améliorer la souplesse')) {
+    candidates.add('Downward Dog'); candidates.add('Planche');
+  }
+  if (profile.sports.includes('Course')) {
+    candidates.add('Fente'); candidates.add('Planche');
+  }
+  if (profile.sports.includes('Natation')) {
+    candidates.add('Pompes'); candidates.add('Planche');
+  }
+  if (profile.sports.includes('Football') || profile.sports.includes('Basket')) {
+    candidates.add('Squat'); candidates.add('Fente'); candidates.add('Planche');
+  }
+  if (candidates.size === 0) {
+    candidates.add('Squat'); candidates.add('Planche');
+  }
+
+  let html = '<h3 style="margin:6px 0">Instructions détaillées des mouvements</h3>';
+  html += '<small class="muted">Suivre la technique et adapter selon ton niveau / blessures.</small>';
+  html += '<div style="margin-top:10px">';
+
+  const blessureDetails = profile.blessureDetails || '';
+  const niveau = profile.niveau || 'Débutant';
+
+  candidates.forEach(name => {
+    const info = EXERCISE_INSTRUCTIONS[name];
+    if (!info) return;
+    const steps = adaptStepsForLevel(info.steps, niveau);
+    const cues = adjustForInjury(info.cues, blessureDetails);
+
+    html += `<div style="border:1px solid #e6edf3;padding:12px;border-radius:8px;margin-top:10px;background:#fff;color:#111">`;
+    html += `<h4 style="margin:0 0 6px">${name} <span style="font-size:12px;color:#6b7280;margin-left:8px">${info.description}</span></h4>`;
+    html += `<strong>Étapes :</strong><ol>`;
+    steps.forEach(s => html += `<li style="margin:6px 0">${s}</li>`);
+    html += `</ol>`;
+    if (cues.length) {
+      html += `<strong>Conseils / précautions :</strong><ul>`;
+      cues.forEach(c => html += `<li style="margin:6px 0">${c}</li>`);
+      html += `</ul>`;
+    }
+    if (profile.equip && profile.equip.includes('Bandes de résistance')) {
+      html += `<div style="margin-top:8px;font-size:13px;color:#065f46"><strong>Progression (avec bandes) :</strong> ajouter résistance progressive pour Squat / Fente; bandes pour assistance sur Pompes si besoin.</div>`;
+    } else if (profile.equip && profile.equip.includes('Haltères')) {
+      html += `<div style="margin-top:8px;font-size:13px;color:#065f46"><strong>Progression (avec haltères) :</strong> utiliser charges légères pour Squat et Fente; privilégier technique avant charge.</div>`;
+    }
+    html += `</div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+const oldShowProfile = window.showProfile;
+if (typeof oldShowProfile === 'function') {
+  window.showProfile = function(profile){
+    oldShowProfile(profile);
+    const instructionsContainer = document.getElementById('exerciseInstructions');
+    if (instructionsContainer) {
+      instructionsContainer.innerHTML = generateExerciseInstructions(profile);
+      instructionsContainer.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  };
+}
+const EXERCISE_VIDEOS = {
+  "Squat": [
+    "squat.mp4"
+  ],
+  "Pompes": [
+    "pompes.mp4"
+  ],
+  "Fente": [
+    "lunges.mp4"
+  ],
+  "Downward Dog": [
+    "downward-dogs.mp4"
+  ]
+};
+function generateExerciseVideos(profile) {
+    let html = "<h3>Vidéos recommandées</h3>";
+
+    const movements = profile.exercices || [];
+
+    movements.forEach(ex => {
+        if (EXERCISE_VIDEOS[ex]) {
+
+            EXERCISE_VIDEOS[ex].forEach(video => {
+                html += `
+                    <div class="video-box">
+                        <video controls width="300" style="border-radius:10px; margin:10px 0;">
+                            <source src="${video}" type="video/mp4">
+                            Ton navigateur ne supporte pas la vidéo.
+                        </video>
+                    </div>
+                `;
+            });
+        }
+    });
+
+    return html;
+}
+window.showProfile = function(profile){
+    oldShowProfile(profile);
+    const instructionsContainer = document.getElementById('exerciseInstructions');
+    if (instructionsContainer) {
+      instructionsContainer.innerHTML = generateExerciseInstructions(profile);
+      instructionsContainer.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+};
+window.showProfile = function(profile){
+    oldShowProfile(profile);
+
+    const instructionsContainer = document.getElementById('exerciseInstructions');
+    if (instructionsContainer) {
+      instructionsContainer.innerHTML = generateExerciseInstructions(profile);
+    }
+
+    const videosContainer = document.getElementById('exerciseVideos');
+    if (videosContainer) {
+      videosContainer.innerHTML = generateExerciseVideos(profile);
+    }
+
+    videosContainer.scrollIntoView({behavior:'smooth', block:'center'});
+};
+  </script>
+</body>
